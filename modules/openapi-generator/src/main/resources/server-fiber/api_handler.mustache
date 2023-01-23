@@ -1,0 +1,170 @@
+{{>partial_header}}
+package {{packageName}}
+
+import (
+    "github.com/gofiber/fiber/v2"
+    "strings"
+)
+
+// {{classname}}Handler binds http requests to an api controller and writes the service results to the http response
+type {{classname}}Handler struct {
+    controller {{classname}}Controller
+}
+
+// New{{classname}}Handler creates a default api handler
+func New{{classname}}Handler(c {{classname}}Controller) Router {
+	controller := &{{classname}}Handler{
+		controller:      c,
+	}
+
+	return controller
+}
+
+// Routes returns all the api routes for the {{classname}}Handler
+func (c *{{classname}}Handler) Routes() Routes {
+	return Routes{ {{#operations}}{{#operation}}
+		{
+			"{{operationId}}",
+			strings.ToUpper("{{httpMethod}}"),
+			"{{{basePathWithoutHost}}}{{{path}}}",
+			c.{{operationId}},
+		},{{/operation}}{{/operations}}
+	}
+}{{#operations}}{{#operation}}
+
+// {{nickname}} - {{{summary}}}
+{{#isDeprecated}}
+// Deprecated
+{{/isDeprecated}}
+func (c *{{classname}}Handler) {{nickname}}(f *fiber.Ctx) error {
+	{{#allParams}}
+	{{#isPathParam}}
+	{{#isLong}}
+	{{paramName}}Param, err := parseInt64Parameter(f.Params("{{baseName}}"), {{required}})
+	if err != nil {
+        return &ParsingError{Err: err}
+	}
+	{{/isLong}}
+	{{#isInteger}}
+	{{paramName}}Param, err := parseInt32Parameter(f.Params("{{baseName}}"), {{required}})
+	if err != nil {
+        return &ParsingError{Err: err}
+	}
+	{{/isInteger}}
+	{{^isLong}}
+	{{^isInteger}}
+	{{paramName}}Param := f.Params("{{baseName}}")
+	{{/isInteger}}{{/isLong}}
+	{{/isPathParam}}
+	{{#isQueryParam}}
+	{{#isLong}}
+	{{paramName}}Param, err := parseInt64Parameter(f.Query("{{baseName}}")), {{required}})
+	if err != nil {
+        return &ParsingError{Err: err}
+	}
+	{{/isLong}}
+	{{#isInteger}}
+	{{paramName}}Param, err := parseInt32Parameter(f.Query("{{baseName}}")), {{required}})
+	if err != nil {
+        return &ParsingError{Err: err}
+	}
+	{{/isInteger}}
+	{{#isBoolean}}
+	{{paramName}}Param, err := parseBoolParameter(f.Query("{{baseName}}"))
+	if err != nil {
+        return &ParsingError{Err: err}
+	}
+	{{/isBoolean}}
+	{{#isArray}}
+	{{#items.isLong}}
+	{{paramName}}Param, err := parseInt64ArrayParameter(f.Query("{{baseName}}"), ",", {{required}})
+	if err != nil {
+        return &ParsingError{Err: err}
+	}
+	{{/items.isLong}}
+	{{#items.isInteger}}
+	{{paramName}}Param, err := parseInt32ArrayParameter(f.Query("{{baseName}}"), ",", {{required}})
+	if err != nil {
+        return &ParsingError{Err: err}
+	}
+	{{/items.isInteger}}
+	{{^items.isLong}}
+	{{^items.isInteger}}
+	{{paramName}}Param := strings.Split(f.Query("{{baseName}}"), ",")
+	{{/items.isInteger}}
+	{{/items.isLong}}
+	{{/isArray}}
+	{{^isLong}}
+	{{^isInteger}}
+	{{^isBoolean}}
+	{{^isArray}}
+	{{paramName}}Param := f.Query("{{baseName}}")
+	{{/isArray}}
+	{{/isBoolean}}
+	{{/isInteger}}
+	{{/isLong}}
+	{{/isQueryParam}}
+	{{#isFormParam}}
+	{{#isFile}}{{#isArray}}
+	{{paramName}}Param, err := ReadFormFilesToTempFiles(f, "{{baseName}}"){{/isArray}}{{^isArray}}
+	{{paramName}}Param, err := ReadFormFileToTempFile(f, "{{baseName}}")
+	{{/isArray}}
+	if err != nil {
+        return &ParsingError{Err: err}
+	}
+	{{/isFile}}
+	{{#isLong}}{{#isArray}}
+	{{paramName}}Param, err := parseInt64ArrayParameter(f.FormValue("{{baseName}}"), ",", {{required}}){{/isArray}}{{^isArray}}
+	{{paramName}}Param, err := parseInt64Parameter(f.FormValue("{{baseName}}"), {{required}}){{/isArray}}
+	if err != nil {
+        return &ParsingError{Err: err}
+	}
+	{{/isLong}}
+	{{#isInteger}}{{#isArray}}
+	{{paramName}}Param, err := parseInt32ArrayParameter(f.FormValue("{{baseName}}"), ",", {{required}}){{/isArray}}{{^isArray}}
+	{{paramName}}Param, err := parseInt32Parameter(f.FormValue("{{baseName}}"), {{required}}){{/isArray}}
+	if err != nil {
+		return &ParsingError{Err: err}
+	}
+	{{/isInteger}}
+	{{^isFile}}
+	{{^isLong}}
+	{{paramName}}Param := f.FormValue("{{baseName}}")
+	{{/isLong}}
+	{{/isFile}}
+	{{/isFormParam}}
+	{{#isHeaderParam}}
+	{{paramName}}Param := f.Get("{{baseName}}")
+	{{/isHeaderParam}}
+	{{#isBodyParam}}
+	{{paramName}}Param := {{dataType}}{}
+	if err := f.BodyParser(&{{paramName}}Param); err != nil {
+        return &ParsingError{Err: err}
+	}
+	{{#isArray}}
+		{{#items.isModel}}
+	for _, el := range {{paramName}}Param {
+		if err := Assert{{baseType}}Required(el); err != nil {
+			return err
+		}
+	}
+		{{/items.isModel}}
+	{{/isArray}}
+	{{^isArray}}
+		{{#isModel}}
+	if err := Assert{{baseType}}Required({{paramName}}Param); err != nil {
+		return err
+	}
+		{{/isModel}}
+	{{/isArray}}
+	{{/isBodyParam}}
+	{{/allParams}}
+	result, err := c.controller.{{nickname}}(f{{#allParams}}, {{paramName}}Param{{/allParams}})
+	// If an error occurred, encode the error with the status code
+	if err != nil {
+		return err
+	}
+	// If no error, encode the body and the result code
+    return f.Status(result.Code).JSON(result.Body)
+
+}{{/operation}}{{/operations}}

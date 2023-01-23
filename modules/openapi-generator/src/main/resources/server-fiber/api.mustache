@@ -1,0 +1,20 @@
+{{>partial_header}}
+package {{packageName}}
+
+import (
+    "github.com/gofiber/fiber/v2"{{#apiInfo}}{{#apis}}{{#imports}}
+	"{{import}}"{{/imports}}{{/apis}}{{/apiInfo}}
+)
+
+//Void is a type that represents an empty method response body
+type Void = *struct{}
+
+{{#apiInfo}}{{#apis}}
+// {{classname}}Controller defines the api actions for the {{classname}} controller
+// This interface intended to stay up to date with the openapi yaml used to generate it
+type {{classname}}Controller interface { {{#operations}}{{#operation}}
+	{{#isDeprecated}}
+	// Deprecated
+	{{/isDeprecated}}
+	{{operationId}}(*fiber.Ctx{{#allParams}}, {{dataType}}{{/allParams}}) (ImplResponse[{{returnType}}], error){{/operation}}{{/operations}}
+}{{/apis}}{{/apiInfo}}

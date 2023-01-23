@@ -1,0 +1,31 @@
+{{>partial_header}}
+package {{packageName}}
+
+import (
+    "errors"
+    "github.com/gofiber/fiber/v2"
+	"net/http"{{#imports}}
+	"{{import}}"{{/imports}}
+)
+
+// {{classname}}ControllerImpl is a controller that implements the logic for the {{classname}}Controller
+// This controller should contain response statuses and bodies for every endpoint for the {{classname}} API.
+// Include any external packages or services that will be required by this controller.
+type {{classname}}ControllerImpl struct {
+}
+
+// New{{classname}}ControllerImpl creates a default api service
+func New{{classname}}ControllerImpl() {{classname}}Controller {
+	return &{{classname}}ControllerImpl{}
+}{{#operations}}{{#operation}}
+
+// {{nickname}} - {{summary}}
+{{#isDeprecated}}
+// Deprecated
+{{/isDeprecated}}
+func (c *{{classname}}ControllerImpl) {{nickname}}(f *fiber.Ctx{{#allParams}}, {{paramName}} {{dataType}}{{/allParams}}) (ImplResponse[{{returnType}}], error) {
+	// TODO - update {{nickname}} with the required logic for this controller method.
+	// Add {{classFilename}}_controller.go to the .openapi-generator-ignore to avoid overwriting this controller implementation when updating open api generation.
+
+	return ImplResponse[{{returnType}}]{Code: http.StatusNotImplemented, Body: nil}, errors.New("{{nickname}} method not implemented")
+}{{/operation}}{{/operations}}
